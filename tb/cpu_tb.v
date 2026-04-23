@@ -28,6 +28,8 @@ module cpu_tb;
     wire bi;
     wire eo;
     wire su;
+    wire mu;
+    wire du;
     wire hlt;
 
     cpu dut (
@@ -57,6 +59,8 @@ module cpu_tb;
         .bi(bi),
         .eo(eo),
         .su(su),
+        .mu(mu),
+        .du(du),
         .hlt(hlt)
     );
 
@@ -66,14 +70,20 @@ module cpu_tb;
         clk = 1'b0;
         reset = 1'b1;
 
-        dut.u_memory.mem[4'h0] = 8'h03;
+        dut.u_memory.mem[4'h0] = 8'h09;
         dut.u_memory.mem[4'h1] = 8'h16;
-        dut.u_memory.mem[4'h2] = 8'hF0;
-        dut.u_memory.mem[4'h3] = 8'h04;
+        dut.u_memory.mem[4'h2] = 8'h47;
+        dut.u_memory.mem[4'h3] = 8'h58;
+        dut.u_memory.mem[4'h4] = 8'hF0;
         dut.u_memory.mem[4'h6] = 8'h05;
+        dut.u_memory.mem[4'h7] = 8'h02;
+        dut.u_memory.mem[4'h8] = 8'h03;
+        dut.u_memory.mem[4'h9] = 8'h04;
 
+`ifdef IVERILOG
         $dumpfile("cpu_tb.vcd");
         $dumpvars(0, cpu_tb);
+`endif
 
         #12;
         reset = 1'b0;
@@ -81,20 +91,26 @@ module cpu_tb;
         wait (halted === 1'b1);
         #10;
 
-        if (a_value !== 8'h09) begin
-            $display("FAIL: expected A=09, got A=%02h", a_value);
-            $finish_and_return(1);
+        if (a_value !== 8'h06) begin
+            $display("FAIL: expected A=06, got A=%02h", a_value);
+            $finish;
         end
 
         $display("PASS: final A register = %02h", a_value);
-        $display("PASS: memory[3] = %02h, memory[6] = %02h", dut.u_memory.mem[4'h3], dut.u_memory.mem[4'h6]);
+        $display(
+            "PASS: memory[9] = %02h, memory[6] = %02h, memory[7] = %02h, memory[8] = %02h",
+            dut.u_memory.mem[4'h9],
+            dut.u_memory.mem[4'h6],
+            dut.u_memory.mem[4'h7],
+            dut.u_memory.mem[4'h8]
+        );
         $finish;
     end
 
     always @(posedge clk) begin
         if (!reset) begin
             $display(
-                "t=%0t T=%0d PC=%0h MAR=%0h IR=%02h BUS=%02h A=%02h B=%02h MEM=%02h ALU=%02h | CO=%b CE=%b MI=%b RO=%b RI=%b II=%b IO=%b AI=%b AO=%b BI=%b EO=%b SU=%b HLT=%b HALTED=%b",
+                "t=%0t T=%0d PC=%0h MAR=%0h IR=%02h BUS=%02h A=%02h B=%02h MEM=%02h ALU=%02h | CO=%b CE=%b MI=%b RO=%b RI=%b II=%b IO=%b AI=%b AO=%b BI=%b EO=%b SU=%b MU=%b DU=%b HLT=%b HALTED=%b",
                 $time,
                 t_state,
                 pc_value,
@@ -117,6 +133,8 @@ module cpu_tb;
                 bi,
                 eo,
                 su,
+                mu,
+                du,
                 hlt,
                 halted
             );

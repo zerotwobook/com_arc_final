@@ -2,18 +2,22 @@
 
 This repository contains a simple SAP-1 implementation in Verilog and a testbench for the program below:
 
-- `LDA 3`
+- `LDA 9`
 - `ADD 6`
+- `MUL 7`
+- `DIV 8`
 - `HLT`
 
 The testbench initializes:
 
-- `mem[3] = 8'h04`
+- `mem[9] = 8'h04`
 - `mem[6] = 8'h05`
+- `mem[7] = 8'h02`
+- `mem[8] = 8'h03`
 
 Expected result:
 
-- Register `A = 8'h09`
+- Register `A = 8'h06`
 
 ## Structure
 
@@ -32,6 +36,8 @@ Expected result:
 - `0x1_`: `ADD addr`
 - `0x2_`: `SUB addr`
 - `0x3_`: `STA addr`
+- `0x4_`: `MUL addr`
+- `0x5_`: `DIV addr`
 - `0xE_`: `NOP`
 - `0xF_`: `HLT`
 

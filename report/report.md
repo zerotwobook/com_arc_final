@@ -14,7 +14,7 @@ This project implements a simple SAP-1 style CPU in Verilog. The design is an 8-
 - Single shared bus
 - Hardwired control unit
 
-The test program is:
+The original assignment program is:
 
 ```text
 Address  Data   Meaning
@@ -31,8 +31,25 @@ Instruction encoding used in this implementation:
 - `0x1_` = `ADD addr`
 - `0x2_` = `SUB addr`
 - `0x3_` = `STA addr`
+- `0x4_` = `MUL addr`
+- `0x5_` = `DIV addr`
 - `0xE_` = `NOP`
 - `0xF_` = `HLT`
+
+This repository now also supports multiplication and division. The extended validation program used in the current testbench is:
+
+```text
+Address  Data   Meaning
+0        09     LDA 9
+1        16     ADD 6
+2        47     MUL 7
+3        58     DIV 8
+4        F0     HLT
+6        05     Data value 5
+7        02     Data value 2
+8        03     Data value 3
+9        04     Data value 4
+```
 
 ## 2. Module Breakdown
 
@@ -40,7 +57,7 @@ Instruction encoding used in this implementation:
 - `control_unit.v`: generates timing steps and control signals
 - `register.v`: reusable register block for MAR, IR, A, and B
 - `program_counter.v`: holds the next instruction address
-- `alu.v`: performs `A + B` or `A - B`
+- `alu.v`: performs add, subtract, multiply, and divide on `A` and `B`
 - `memory.v`: 16-byte memory array with asynchronous read and synchronous write
 - `bus.v`: selects one data source onto the single 8-bit bus
 
@@ -60,6 +77,8 @@ The controller generates the following signals:
 - `BI`: load register `B` from the bus
 - `EO`: place ALU result on the bus
 - `SU`: tell the ALU to subtract instead of add
+- `MU`: tell the ALU to multiply
+- `DU`: tell the ALU to divide
 - `HLT`: halt the processor
 
 ## 4. Timing-Step Explanation
@@ -163,22 +182,77 @@ The instruction at address `2` is `F0`, so `opcode = F`.
 - The control unit latches the halted state.
 - The timing counter resets and the CPU stops advancing.
 
+### 4.5 Instruction `MUL 7`
+
+In the extended validation program, the instruction at address `2` is `47`, so `opcode = 4` and `operand = 7`.
+
+#### T2
+
+- `IO = 1`, `MI = 1`
+- The operand field `IR[3:0] = 7` is driven onto the bus.
+- `MAR` loads address `7`.
+
+#### T3
+
+- `RO = 1`, `BI = 1`
+- Memory places `mem[7] = 02` on the bus.
+- Register `B` loads `02`.
+
+#### T4
+
+- `MU = 1`, `EO = 1`, `AI = 1`
+- The ALU computes `A * B = 09 * 02 = 12` hexadecimal, or `18` decimal.
+- The ALU result drives the bus.
+- Register `A` loads the product.
+- Result: `A = 12`.
+
+### 4.6 Instruction `DIV 8`
+
+In the extended validation program, the instruction at address `3` is `58`, so `opcode = 5` and `operand = 8`.
+
+#### T2
+
+- `IO = 1`, `MI = 1`
+- The operand field `IR[3:0] = 8` is driven onto the bus.
+- `MAR` loads address `8`.
+
+#### T3
+
+- `RO = 1`, `BI = 1`
+- Memory places `mem[8] = 03` on the bus.
+- Register `B` loads `03`.
+
+#### T4
+
+- `DU = 1`, `EO = 1`, `AI = 1`
+- The ALU computes `A / B = 12 / 03 = 06` hexadecimal, or `6` decimal.
+- The ALU result drives the bus.
+- Register `A` loads the quotient.
+- Result: `A = 06`.
+
 ## 5. Final Result
 
 At the end of the program:
 
-- `A = 09`
-- `B = 05`
-- `PC = 3` after fetching `HLT`
-- `mem[3] = 04`
-- `mem[6] = 05`
+- Assignment reference program:
+  - `LDA 3` loads `4` into `A`
+  - `ADD 6` updates `A` to `9`
+- Extended validation program:
+  - `LDA 9` gives `A = 4`
+  - `ADD 6` gives `A = 9`
+  - `MUL 7` gives `A = 18`
+  - `DIV 8` gives `A = 6`
 
-So the machine correctly performs:
+So the updated machine correctly performs:
 
 ```text
-LDA 3   => A = mem[3] = 4
+LDA 9   => A = mem[9] = 4
 ADD 6   => A = A + mem[6] = 4 + 5 = 9
+MUL 7   => A = A * mem[7] = 9 * 2 = 18
+DIV 8   => A = A / mem[8] = 18 / 3 = 6
 ```
+
+For division by zero, this implementation returns `00` to keep the ALU behavior defined in simulation.
 
 ## 6. Waveform Notes
 
@@ -195,13 +269,14 @@ For waveform capture in Vivado, add all files in `src/` and `tb/cpu_tb.v`, run b
 - `b_value`
 - `mem_value`
 - `alu_value`
-- `co ce mi ro ri ii io ai ao bi eo su hlt`
+- `co ce mi ro ri ii io ai ao bi eo su mu du hlt`
 - `halted`
 
 The key waveform moments to capture are:
 
-- Fetch of `LDA 3`
-- Execution of `LDA 3` where `A` becomes `04`
+- Fetch of `LDA 9`
+- Execution of `LDA 9` where `A` becomes `04`
 - Execution of `ADD 6` where `B` becomes `05`
-- ALU step where `A` becomes `09`
+- ALU multiply step where `A` becomes `12`
+- ALU divide step where `A` becomes `06`
 - Halt step where `HLT` goes high and `halted` becomes `1`

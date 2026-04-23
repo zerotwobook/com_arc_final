@@ -14,6 +14,8 @@ module control_unit (
     output reg bi,
     output reg eo,
     output reg su,
+    output reg mu,
+    output reg du,
     output reg hlt,
     output reg [2:0] t_state,
     output reg halted
@@ -22,6 +24,8 @@ module control_unit (
     localparam OPCODE_ADD = 4'h1;
     localparam OPCODE_SUB = 4'h2;
     localparam OPCODE_STA = 4'h3;
+    localparam OPCODE_MUL = 4'h4;
+    localparam OPCODE_DIV = 4'h5;
     localparam OPCODE_NOP = 4'hE;
     localparam OPCODE_HLT = 4'hF;
 
@@ -41,6 +45,8 @@ module control_unit (
         bi = 1'b0;
         eo = 1'b0;
         su = 1'b0;
+        mu = 1'b0;
+        du = 1'b0;
         hlt = 1'b0;
         step_reset = 1'b0;
         halt_now = 1'b0;
@@ -61,7 +67,9 @@ module control_unit (
                         OPCODE_LDA,
                         OPCODE_ADD,
                         OPCODE_SUB,
-                        OPCODE_STA: begin
+                        OPCODE_STA,
+                        OPCODE_MUL,
+                        OPCODE_DIV: begin
                             io = 1'b1;
                             mi = 1'b1;
                         end
@@ -86,7 +94,9 @@ module control_unit (
                             step_reset = 1'b1;
                         end
                         OPCODE_ADD,
-                        OPCODE_SUB: begin
+                        OPCODE_SUB,
+                        OPCODE_MUL,
+                        OPCODE_DIV: begin
                             ro = 1'b1;
                             bi = 1'b1;
                         end
@@ -109,6 +119,18 @@ module control_unit (
                         end
                         OPCODE_SUB: begin
                             su = 1'b1;
+                            eo = 1'b1;
+                            ai = 1'b1;
+                            step_reset = 1'b1;
+                        end
+                        OPCODE_MUL: begin
+                            mu = 1'b1;
+                            eo = 1'b1;
+                            ai = 1'b1;
+                            step_reset = 1'b1;
+                        end
+                        OPCODE_DIV: begin
+                            du = 1'b1;
                             eo = 1'b1;
                             ai = 1'b1;
                             step_reset = 1'b1;

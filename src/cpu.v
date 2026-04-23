@@ -25,6 +25,8 @@ module cpu (
     output wire bi,
     output wire eo,
     output wire su,
+    output wire mu,
+    output wire du,
     output wire hlt
 );
     wire [7:0] bus_internal;
@@ -55,6 +57,8 @@ module cpu (
         .bi(bi),
         .eo(eo),
         .su(su),
+        .mu(mu),
+        .du(du),
         .hlt(hlt),
         .t_state(t_state),
         .halted(halted)
@@ -103,6 +107,8 @@ module cpu (
         .a_value(a_internal),
         .b_value(b_internal),
         .subtract(su),
+        .multiply(mu),
+        .divide(du),
         .result(alu_internal)
     );
 
